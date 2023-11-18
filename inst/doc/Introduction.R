@@ -1,10 +1,11 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
 ## ----setup--------------------------------------------------------------------
+suppressPackageStartupMessages(library(Biostrings))
 library(cubar)
 library(ggplot2)
 
@@ -46,7 +47,7 @@ plot_dist(enc, 'ENC')
 ## -----------------------------------------------------------------------------
 # estimate optimal codons
 optimal_codons <- est_optimal_codons(yeast_cds_qc, codon_table = ctab)
-optimal_codons
+head(optimal_codons)
 
 # get fop
 fop <- get_fop(yeast_cds)
