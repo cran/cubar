@@ -49,7 +49,7 @@ overflow: visible;
 </style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -340,8 +340,19 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
+<div id="introduction" class="section level4">
+<h4>Introduction</h4>
+<p><code>cubar</code> supports the codon usage bias analysis of
+sequences utilizing non-standard genetic codes, such as those found in
+mitochondrial or chloroplast protein-coding sequences. To illustrate its
+application, we demonstrate the calculation of effective number of
+codons (ENC) for human mitochondrial CDS sequences.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(Biostrings))</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(cubar)</span></code></pre></div>
+</div>
+<div id="main-analysis" class="section level4">
+<h4>Main analysis</h4>
+<p>First, Load sequences and get the corresponding codon table.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>human_mt</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; DNAStringSet object of length 13:</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;      width seq                                              names               </span></span>
@@ -358,46 +369,74 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; [13]   784 ATGACCCACCAATCACATGCCTA...TCCATCTATTGATGAGGGTCTT MT-CO3</span></span>
 <span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a></span>
 <span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>ctab <span class="ot">&lt;-</span> <span class="fu">get_codon_table</span>(<span class="at">gcid =</span> <span class="st">&#39;2&#39;</span>)</span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co"># we do not check CDS length and stop codons as incomplete stop codons are prevalent among MT CDSs.</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>human_mt_qc <span class="ot">&lt;-</span> <span class="fu">check_cds</span>(</span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>    human_mt,</span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>    <span class="at">codon_table =</span> ctab,</span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>    <span class="at">check_stop =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>    <span class="at">rm_stop =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>    <span class="at">check_len =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>    <span class="at">start_codons =</span> <span class="fu">c</span>(<span class="st">&#39;ATG&#39;</span>, <span class="st">&#39;ATA&#39;</span>, <span class="st">&#39;ATT&#39;</span>))</span>
-<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a></span>
-<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a>human_mt_qc</span>
-<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="co">#&gt; DNAStringSet object of length 13:</span></span>
-<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="co">#&gt;      width seq                                              names               </span></span>
-<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="co">#&gt;  [1]   678 AACGAAAATCTGTTCGCTTCATT...CTACCTGCACGACAACACATAA MT-ATP6</span></span>
-<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a><span class="co">#&gt;  [2]   343 AACTTCGCCTTAATTTTAATAAT...AAAGGATTAGACTGAACCGAAT MT-ND3</span></span>
-<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a><span class="co">#&gt;  [3]   953 CCCATGGCCAACCTCCTACTCCT...CCAGCATTCCCCCTCAAACCTA MT-ND1</span></span>
-<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a><span class="co">#&gt;  [4]   204 CCCCAACTAAATACTACCGTATG...TTCATTGCCCCCACAATCCTAG MT-ATP8</span></span>
-<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a><span class="co">#&gt;  [5]  1138 ACCCCAATACGCAAAACTAACCC...AACAAAATACTCAAATGGGCCT MT-CYB</span></span>
-<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a><span class="co">#&gt;  ...   ... ...</span></span>
-<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a><span class="co">#&gt;  [9]  1039 AATCCCCTGGCCCAACCCGTCAT...CCTTTTATACTAATAATCTTAT MT-ND2</span></span>
-<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a><span class="co">#&gt; [10]   522 ATGTATGCTTTGTTTCTGTTGAG...TGAGATTGCTCGGGGGAATAGG MT-ND6</span></span>
-<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a><span class="co">#&gt; [11]  1539 TTCGCCGACCGTTGACTATTCTC...ACCCGTATACATAAAATCTAGA MT-CO1</span></span>
-<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a><span class="co">#&gt; [12]   681 GCACATGCAGCGCAAGTAGGTCT...AGGGCCCGTATTTACCCTATAG MT-CO2</span></span>
-<span id="cb2-40"><a href="#cb2-40" tabindex="-1"></a><span class="co">#&gt; [13]   781 ACCCACCAATCACATGCCTATCA...TCCATCTATTGATGAGGGTCTT MT-CO3</span></span>
-<span id="cb2-41"><a href="#cb2-41" tabindex="-1"></a></span>
-<span id="cb2-42"><a href="#cb2-42" tabindex="-1"></a><span class="co"># As stop codons are present, now we manually remove them</span></span>
-<span id="cb2-43"><a href="#cb2-43" tabindex="-1"></a>len_trim <span class="ot">&lt;-</span> <span class="fu">width</span>(human_mt_qc) <span class="sc">%%</span> <span class="dv">3</span></span>
-<span id="cb2-44"><a href="#cb2-44" tabindex="-1"></a>len_trim <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(len_trim <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">3</span>, len_trim)</span>
-<span id="cb2-45"><a href="#cb2-45" tabindex="-1"></a>human_mt_qc <span class="ot">&lt;-</span> <span class="fu">subseq</span>(human_mt_qc, <span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="fu">width</span>(human_mt_qc) <span class="sc">-</span> len_trim)</span>
-<span id="cb2-46"><a href="#cb2-46" tabindex="-1"></a></span>
-<span id="cb2-47"><a href="#cb2-47" tabindex="-1"></a><span class="co"># calculate codon frequency</span></span>
-<span id="cb2-48"><a href="#cb2-48" tabindex="-1"></a>mt_cf <span class="ot">&lt;-</span> <span class="fu">count_codons</span>(human_mt_qc)</span>
-<span id="cb2-49"><a href="#cb2-49" tabindex="-1"></a></span>
-<span id="cb2-50"><a href="#cb2-50" tabindex="-1"></a></span>
-<span id="cb2-51"><a href="#cb2-51" tabindex="-1"></a><span class="co"># calculate ENC</span></span>
-<span id="cb2-52"><a href="#cb2-52" tabindex="-1"></a><span class="fu">get_enc</span>(mt_cf, <span class="at">codon_table =</span> ctab)</span>
-<span id="cb2-53"><a href="#cb2-53" tabindex="-1"></a><span class="co">#&gt;  MT-ATP6   MT-ND3   MT-ND1  MT-ATP8   MT-CYB  MT-ND4L   MT-ND4   MT-ND5 </span></span>
-<span id="cb2-54"><a href="#cb2-54" tabindex="-1"></a><span class="co">#&gt; 46.44871 44.93068 42.42264 50.54562 42.97931 47.29975 42.65228 43.53521 </span></span>
-<span id="cb2-55"><a href="#cb2-55" tabindex="-1"></a><span class="co">#&gt;   MT-ND2   MT-ND6   MT-CO1   MT-CO2   MT-CO3 </span></span>
-<span id="cb2-56"><a href="#cb2-56" tabindex="-1"></a><span class="co">#&gt; 45.18387 45.56454 44.83277 49.19525 47.07683</span></span></code></pre></div>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="fu">head</span>(ctab)</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;    aa_code amino_acid codon subfam</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; 1:       F        Phe   TTT Phe_TT</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; 2:       F        Phe   TTC Phe_TT</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; 3:       L        Leu   TTA Leu_TT</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; 4:       L        Leu   TTG Leu_TT</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; 5:       S        Ser   TCT Ser_TC</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; 6:       S        Ser   TCC Ser_TC</span></span></code></pre></div>
+<p>We do not check CDS length and stop codons as incomplete stop codons
+are prevalent among MT CDSs.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>human_mt_qc <span class="ot">&lt;-</span> <span class="fu">check_cds</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>    human_mt,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>    <span class="at">codon_table =</span> ctab,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>    <span class="at">check_stop =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>    <span class="at">rm_stop =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>    <span class="at">check_len =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>    <span class="at">start_codons =</span> <span class="fu">c</span>(<span class="st">&#39;ATG&#39;</span>, <span class="st">&#39;ATA&#39;</span>, <span class="st">&#39;ATT&#39;</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>human_mt_qc</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; DNAStringSet object of length 13:</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;      width seq                                              names               </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;  [1]   678 AACGAAAATCTGTTCGCTTCATT...CTACCTGCACGACAACACATAA MT-ATP6</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;  [2]   343 AACTTCGCCTTAATTTTAATAAT...AAAGGATTAGACTGAACCGAAT MT-ND3</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;  [3]   953 CCCATGGCCAACCTCCTACTCCT...CCAGCATTCCCCCTCAAACCTA MT-ND1</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;  [4]   204 CCCCAACTAAATACTACCGTATG...TTCATTGCCCCCACAATCCTAG MT-ATP8</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;  [5]  1138 ACCCCAATACGCAAAACTAACCC...AACAAAATACTCAAATGGGCCT MT-CYB</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;  ...   ... ...</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;  [9]  1039 AATCCCCTGGCCCAACCCGTCAT...CCTTTTATACTAATAATCTTAT MT-ND2</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; [10]   522 ATGTATGCTTTGTTTCTGTTGAG...TGAGATTGCTCGGGGGAATAGG MT-ND6</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt; [11]  1539 TTCGCCGACCGTTGACTATTCTC...ACCCGTATACATAAAATCTAGA MT-CO1</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt; [12]   681 GCACATGCAGCGCAAGTAGGTCT...AGGGCCCGTATTTACCCTATAG MT-CO2</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; [13]   781 ACCCACCAATCACATGCCTATCA...TCCATCTATTGATGAGGGTCTT MT-CO3</span></span></code></pre></div>
+<p>As stop codons are present, now we manually remove them.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>len_trim <span class="ot">&lt;-</span> <span class="fu">width</span>(human_mt_qc) <span class="sc">%%</span> <span class="dv">3</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>len_trim <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(len_trim <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">3</span>, len_trim)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>human_mt_qc <span class="ot">&lt;-</span> <span class="fu">subseq</span>(human_mt_qc, <span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="fu">width</span>(human_mt_qc) <span class="sc">-</span> len_trim)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>human_mt_qc</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; DNAStringSet object of length 13:</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;      width seq                                              names               </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;  [1]   675 AACGAAAATCTGTTCGCTTCATT...CCTCTACCTGCACGACAACACA MT-ATP6</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;  [2]   342 AACTTCGCCTTAATTTTAATAAT...AAAAGGATTAGACTGAACCGAA MT-ND3</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;  [3]   951 CCCATGGCCAACCTCCTACTCCT...CTCCAGCATTCCCCCTCAAACC MT-ND1</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;  [4]   201 CCCCAACTAAATACTACCGTATG...TCATTCATTGCCCCCACAATCC MT-ATP8</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;  [5]  1137 ACCCCAATACGCAAAACTAACCC...AAACAAAATACTCAAATGGGCC MT-CYB</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;  ...   ... ...</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;  [9]  1038 AATCCCCTGGCCCAACCCGTCAT...CCCTTTTATACTAATAATCTTA MT-ND2</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; [10]   519 ATGTATGCTTTGTTTCTGTTGAG...AATTGAGATTGCTCGGGGGAAT MT-ND6</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; [11]  1536 TTCGCCGACCGTTGACTATTCTC...AGAACCCGTATACATAAAATCT MT-CO1</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; [12]   678 GCACATGCAGCGCAAGTAGGTCT...AATAGGGCCCGTATTTACCCTA MT-CO2</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; [13]   780 ACCCACCAATCACATGCCTATCA...CTCCATCTATTGATGAGGGTCT MT-CO3</span></span></code></pre></div>
+<p>Finally, we calculate codon frequencies and ENC.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># calculate codon frequency</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>mt_cf <span class="ot">&lt;-</span> <span class="fu">count_codons</span>(human_mt_qc)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># calculate ENC</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">get_enc</span>(mt_cf, <span class="at">codon_table =</span> ctab)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;  MT-ATP6   MT-ND3   MT-ND1  MT-ATP8   MT-CYB  MT-ND4L   MT-ND4   MT-ND5 </span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 46.44871 44.93068 42.42264 50.54562 42.97931 47.29975 42.65228 43.53521 </span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   MT-ND2   MT-ND6   MT-CO1   MT-CO2   MT-CO3 </span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 45.18387 45.56454 44.83277 49.19525 47.07683</span></span></code></pre></div>
+<p>It is important to note that the <code>check_cds</code> function and
+stop codon trimming are optional steps, and you can implement your own
+quality control procedures. However, it is crucial to ensure that your
+input sequences are suitable for codon usage bias analysis. Failure to
+do so may lead to ambiguous and misleading results from problematic
+sequences.</p>
+</div>
 
 
 

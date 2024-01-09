@@ -4,7 +4,8 @@
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/cubar)](https://CRAN.R-project.org/package=cubar)
 [![](https://cranlogs.r-pkg.org/badges/cubar)](https://cran.r-project.org/package=cubar)
-[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10155990.svg)](https://doi.org/10.5281/zenodo.10155990)
 <!-- badges: end -->
 
 ### Overview
@@ -51,6 +52,13 @@ The latest developmental version of `cubar` can be installed with:
 ```r
 devtools::install_github("mt1022/cubar", dependencies = TRUE)
 ```
+
+### Usage
+Documentation can be found within R (by typing `?function_name`). The following tutorials are available from our [website](https://mt1022.github.io/cubar/):
+
+- [Get Started](https://mt1022.github.io/cubar/articles/cubar.html)
+- [Non-standard Genetic Code](https://mt1022.github.io/cubar/articles/non_standard_genetic_code.html)
+- [Theories behind cubar](https://mt1022.github.io/cubar/articles/theory.html)
 
 ### Suggests
 - [Biostrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) for sequence input/output and manipulation.

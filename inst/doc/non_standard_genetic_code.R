@@ -12,8 +12,9 @@ library(cubar)
 human_mt
 
 ctab <- get_codon_table(gcid = '2')
+head(ctab)
 
-# we do not check CDS length and stop codons as incomplete stop codons are prevalent among MT CDSs.
+## -----------------------------------------------------------------------------
 human_mt_qc <- check_cds(
     human_mt,
     codon_table = ctab,
@@ -24,14 +25,16 @@ human_mt_qc <- check_cds(
 
 human_mt_qc
 
-# As stop codons are present, now we manually remove them
+## -----------------------------------------------------------------------------
 len_trim <- width(human_mt_qc) %% 3
 len_trim <- ifelse(len_trim == 0, 3, len_trim)
 human_mt_qc <- subseq(human_mt_qc, start = 1, end = width(human_mt_qc) - len_trim)
 
+human_mt_qc
+
+## -----------------------------------------------------------------------------
 # calculate codon frequency
 mt_cf <- count_codons(human_mt_qc)
-
 
 # calculate ENC
 get_enc(mt_cf, codon_table = ctab)

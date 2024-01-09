@@ -12,14 +12,19 @@ library(ggplot2)
 ## -----------------------------------------------------------------------------
 # example data
 yeast_cds
-yeast_cds_qc <- check_cds(yeast_cds)
 
+# qc
+yeast_cds_qc <- check_cds(yeast_cds)
+yeast_cds_qc
+
+## -----------------------------------------------------------------------------
 # convert a CDS to codon sequence
 seq_to_codons(yeast_cds_qc[['YDR320W-B']])
 
 # convert a CDS to amino acid sequence
 Biostrings::translate(yeast_cds_qc[['YDR320W-B']])
 
+## -----------------------------------------------------------------------------
 # get codon frequency
 yeast_cf <- count_codons(yeast_cds_qc)
 
@@ -45,13 +50,13 @@ plot_dist <- function(x, xlab = 'values'){
 plot_dist(enc, 'ENC')
 
 ## -----------------------------------------------------------------------------
-# estimate optimal codons
-optimal_codons <- est_optimal_codons(yeast_cds_qc, codon_table = ctab)
-head(optimal_codons)
-
 # get fop
 fop <- get_fop(yeast_cds)
 plot_dist(fop, 'Fop')
+
+## -----------------------------------------------------------------------------
+optimal_codons <- est_optimal_codons(yeast_cds_qc, codon_table = ctab)
+head(optimal_codons[optimal_codons$coef < 0 & optimal_codons$qvalue < 0.01, ])
 
 ## -----------------------------------------------------------------------------
 # estimate RSCU of highly expressed genes
