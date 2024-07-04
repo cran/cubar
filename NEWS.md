@@ -1,3 +1,14 @@
+# cubar 0.6.0
+
+* Add util functions (`codon_optimize` & `codon_diff`)
+* Fix url failure of gtRNAdb, which caused remove of cubar from cran :(
+
+# cubar 0.5.1
+
+* fix a bug in `get_cscg` that caused an error when the input codon frequency
+  matrix has a single row.
+* finish unit tests for all functions and internal data.
+
 # cubar 0.5.0
 
 * fixed a bug in `est_trna_weight`. Now zero w values were replaced with
