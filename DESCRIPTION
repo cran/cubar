@@ -1,6 +1,6 @@
 Package: cubar
 Title: Codon Usage Bias Analysis
-Version: 0.6.0
+Version: 1.0.0
 Authors@R: c(
     person(given = "Hong",
            family = "Zhang",
@@ -34,9 +34,9 @@ VignetteBuilder: knitr
 RoxygenNote: 7.3.1
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2024-07-04 11:13:49 UTC; mt1022
+Packaged: 2024-08-01 03:09:14 UTC; mt1022
 Author: Hong Zhang [aut, cre] (<https://orcid.org/0000-0002-4064-9432>),
   Bu Zi [aut]
 Maintainer: Hong Zhang <mt1022.dev@gmail.com>
 Repository: CRAN
-Date/Publication: 2024-07-04 12:50:06 UTC
+Date/Publication: 2024-08-01 04:20:02 UTC
