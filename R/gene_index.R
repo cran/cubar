@@ -2,8 +2,10 @@
 #'
 #' \code{get_enc} computes ENC of each CDS
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
-#' @param codon_table codon_table a table of genetic code derived from `get_codon_table` or `create_codon_table`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
+#' @param codon_table codon_table a table of genetic code derived from \code{get_codon_table} or
+#'   \code{create_codon_table}.
+#' @param level "subfam" (default) or "amino_acid". For which level to determine ENC.
 #' @return vector of ENC values, sequence names are used as vector names
 #' @export
 #' @references
@@ -16,11 +18,14 @@
 #' enc <- get_enc(cf_all)
 #' head(enc)
 #' hist(enc)
-get_enc <- function(cf, codon_table = get_codon_table()){
+get_enc <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
     aa_code <- NULL # due to NSE notes in R CMD check
+    if(!level %in% c('amino_acid', 'subfam')){
+      stop('Possible values for `level` are "amino_acid" and "subfam"')
+    }
     codon_table <- data.table::as.data.table(codon_table)
     codon_table <- codon_table[!aa_code == '*']
-    codon_list <- split(codon_table$codon, codon_table$subfam)
+    codon_list <- split(codon_table$codon, codon_table[[level]])
 
     f_cf <- sapply(codon_list, function(x){
         mx <- cf[, x, drop = FALSE]
@@ -64,9 +69,10 @@ get_enc <- function(cf, codon_table = get_codon_table()){
 #'
 #' \code{get_cai} calculates Codon Adaptation Index (CAI) of each input CDS
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
 #' @param rscu rscu table containing CAI weight for each codon. This table could be
-#'   generated with `est_rscu` or prepared manually.
+#'   generated with \code{est_rscu} or prepared manually.
+#' @param level "subfam" (default) or "amino_acid". For which level to determine CAI.
 #' @returns a named vector of CAI values
 #' @importFrom data.table ':='
 #' @importFrom data.table .N
@@ -83,11 +89,14 @@ get_enc <- function(cf, codon_table = get_codon_table()){
 #' head(cai)
 #' hist(cai)
 #'
-get_cai <- function(cf, rscu){
-    ss <- . <- subfam <- NULL
+get_cai <- function(cf, rscu, level = 'subfam'){
+    ss <- . <- NULL
+    if(!level %in% c('amino_acid', 'subfam')){
+      stop('Possible values for `level` are "amino_acid" and "subfam"')
+    }
     # exclude single codon sub-family
     rscu <- data.table::as.data.table(rscu)
-    rscu[, ss := .N, by = .(subfam)]
+    rscu[, ss := .N, by = level]
     rscu <- rscu[ss > 1]
     # codon frequency per CDS
     cf <- cf[, rscu$codon, drop = FALSE]
@@ -101,8 +110,8 @@ get_cai <- function(cf, rscu){
 #'
 #' \code{get_tai} calculates tRNA Adaptation Index (TAI) of each CDS
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
-#' @param trna_w tRNA weight for each codon, can be generated with `est_trna_weight()`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
+#' @param trna_w tRNA weight for each codon, can be generated with \code{est_trna_weight()}.
 #' @returns a named vector of TAI values
 #' @references dos Reis M, Savva R, Wernisch L. 2004. Solving the riddle of codon usage
 #'   preferences: a test for translational selection. Nucleic Acids Res 32:5036-5044.
@@ -150,8 +159,10 @@ get_gc <- function(cf){
 #'
 #' Calculate GC content at synonymous 3rd codon positions.
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
-#' @param codon_table a table of genetic code derived from `get_codon_table` or `create_codon_table`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
+#' @param codon_table a table of genetic code derived from \code{get_codon_table} or \code{create_codon_table}.
+#' @param level "subfam" (default) or "amino_acid". For which level to determine 
+#'   GC content at synonymous 3rd codon positions.
 #' @returns a named vector of GC3s values.
 #' @importFrom data.table ':='
 #' @importFrom data.table .N
@@ -164,10 +175,10 @@ get_gc <- function(cf){
 #' head(gc3s)
 #' hist(gc3s)
 #'
-get_gc3s <- function(cf, codon_table = get_codon_table()){
-    aa_code <- ss <- . <- subfam <- gc3s <- codon <- NULL
+get_gc3s <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
+    aa_code <- ss <- . <- gc3s <- codon <- NULL
     codon_table <- data.table::as.data.table(codon_table)
-    codon_table[, ss := .N, by = .(subfam)]
+    codon_table[, ss := .N, by = level]
     codon_table <- codon_table[aa_code != '*' & ss > 1]
     codon_table[, gc3s := substr(codon, 3, 3) %in% c('G', 'C')]
 
@@ -182,8 +193,11 @@ get_gc3s <- function(cf, codon_table = get_codon_table()){
 #'
 #' Calculate GC content at synonymous position of codons (using four-fold degenerate sites only).
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
-#' @param codon_table a table of genetic code derived from `get_codon_table` or `create_codon_table`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
+#' @param codon_table a table of genetic code derived from \code{get_codon_table} or
+#'   \code{create_codon_table}.
+#' @param level "subfam" (default) or "amino_acid". For which level to determine 
+#'   GC contents at 4-fold degenerate sites.
 #' @returns a named vector of GC4d values.
 #' @importFrom data.table ':='
 #' @importFrom data.table .N
@@ -195,11 +209,13 @@ get_gc3s <- function(cf, codon_table = get_codon_table()){
 #' head(gc4d)
 #' hist(gc4d)
 #'
-get_gc4d <- function(cf, codon_table = get_codon_table()){
-    ss <- . <- subfam <- gc4d <- codon <- NULL
-
+get_gc4d <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
+    ss <- . <- gc4d <- codon <- NULL
+    if(!level %in% c('amino_acid', 'subfam')){
+      stop('Possible values for `level` are "amino_acid" and "subfam"')
+    }
     codon_table <- data.table::as.data.table(codon_table)
-    codon_table[, ss := .N, by = .(subfam)]
+    codon_table[, ss := .N, by = level]
     codon_table <- codon_table[ss == 4]
     codon_table[, gc4d := substr(codon, 3, 3) %in% c('G', 'C')]
 
@@ -214,11 +230,12 @@ get_gc4d <- function(cf, codon_table = get_codon_table()){
 #'
 #' \code{get_fop} calculates the fraction of optimal codons (Fop) of each CDS.
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
 #' @param op a character vector of optimal codons. Can be determined automatically by running
-#'   `est_optimal_codons`.
-#' @param codon_table a table of genetic code derived from `get_codon_table` or `create_codon_table`.
-#' @param ... other arguments passed to `est_optimal_codons`.
+#'   \code{est_optimal_codons}.
+#' @param codon_table a table of genetic code derived from \code{get_codon_table} or
+#'   \code{create_codon_table}.
+#' @param ... other arguments passed to \code{est_optimal_codons}.
 #' @returns a named vector of fop values.
 #' @references Ikemura T. 1981. Correlation between the abundance of Escherichia coli transfer RNAs
 #'   and the occurrence of the respective codons in its protein genes: a proposal for a synonymous
@@ -245,8 +262,8 @@ get_fop <- function(cf, op = NULL, codon_table = get_codon_table(), ...){
 #'
 #' \code{get_cscg} calculates Mean Codon Stabilization Coefficients of each CDS.
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
-#' @param csc table of Codon Stabilization Coefficients as calculated by `est_csc()`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
+#' @param csc table of Codon Stabilization Coefficients as calculated by \code{est_csc()}.
 #' @returns a named vector of cscg values.
 #' @references Presnyak V, Alhusaini N, Chen YH, Martin S, Morris N, Kline N, Olson S, Weinberg D,
 #'   Baker KE, Graveley BR, et al. 2015. Codon optimality is a major determinant of mRNA stability.
@@ -267,14 +284,19 @@ get_cscg <- function(cf, csc){
     stats::setNames(cscg[, 1], rownames(cscg))
 }
 
-#' Deviaiton from Proportionality
+#' Deviation from Proportionality
 #'
 #' \code{get_dp} calculates Deviation from Proportionality of each CDS.
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
+#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
 #' @param host_weights a named vector of tRNA weights for each codon that reflects the relative
 #'  availability of tRNAs in the host organism.
-#' @param codon_table a table of genetic code derived from `get_codon_table` or `create_codon_table`.
+#' @param codon_table a table of genetic code derived from \code{get_codon_table} or
+#'   \code{create_codon_table}.
+#' @param level "subfam" (default) or "amino_acid". If "subfam", the deviation is calculated at
+#'   the codon subfamily level. Otherwise, the deviation is calculated at the amino acid level.
+#' @param missing_action Actions to take when no codon of a group were found in a CDS. Options are
+#'   "ignore" (default), or "zero" (set codon proportions to 0).
 #' @returns a named vector of dp values.
 #' @references Chen F, Wu P, Deng S, Zhang H, Hou Y, Hu Z, Zhang J, Chen X, Yang JR. 2020.
 #'   Dissimilation of synonymous codon usage bias in virus-host coevolution due to translational
@@ -289,17 +311,24 @@ get_cscg <- function(cf, csc){
 #' head(dp)
 #' hist(dp)
 #'
-get_dp <- function(cf, host_weights, codon_table = get_codon_table()){
+get_dp <- function(cf, host_weights, codon_table = get_codon_table(),
+                   level = 'subfam', missing_action = 'ignore'){
     aa_code <- NULL # due to NSE notes in R CMD check
+    if(!level %in% c('amino_acid', 'subfam')){
+      stop('Possible values for `level` are "amino_acid" and "subfam"')
+    }
     codon_table <- data.table::as.data.table(codon_table)
     codon_table <- codon_table[!aa_code == '*']
-    codon_list <- split(codon_table$codon, codon_table$subfam)
-    codon_list <- codon_list[lengths(codon_list) > 1]  # exclude single codon sub-family
+    codon_list <- split(codon_table$codon, codon_table[[level]])
+    codon_list <- codon_list[lengths(codon_list) > 1]  # exclude single codon groups
 
     d <- sapply(codon_list, function(codons){
         # get codon proportions
         cf_grp <- cf[, codons, drop = FALSE]
         codon_prop <- cf_grp / rowSums(cf_grp)
+        if(missing_action == 'zero'){
+            codon_prop[is.na(codon_prop)] <- 0
+        }
         # get relative codon availability in the host organisms
         w <- host_weights[codons]
         rel_avail <- w / sum(w)
@@ -307,5 +336,8 @@ get_dp <- function(cf, host_weights, codon_table = get_codon_table()){
         sqrt(rowSums(sweep(codon_prop, 2, rel_avail)^2))
     })
     # geometric mean across subfamilies
+    # remove NA values due to following causes:
+    # 1. no codon of a group were found in a CDS when missing_action = "ignore";
+    # 2. exact match to the host tRNA pool. (very rare)
     dp <- exp(rowMeans(log(d), na.rm = TRUE))
 }

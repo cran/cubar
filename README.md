@@ -4,26 +4,27 @@
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/cubar)](https://CRAN.R-project.org/package=cubar)
 [![](https://cranlogs.r-pkg.org/badges/cubar)](https://cran.r-project.org/package=cubar)
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10155990.svg)](https://doi.org/10.5281/zenodo.10155990)
+[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 <!-- badges: end -->
 
 ### Overview
 cubar is a package for codon usage bias analysis in R. Main features are as follows:
 
 - Codon level analyses
-    - Calculate tRNA weights;
+    - Calculate codon weights based on gene expression, tRNA availability, and mRNA stability;
     - Calculate relative synonymous codon usage (RSCU);
     - Machine learning-based inference of optimal codons;
     - Visualization codon-anticodon pairing relationships;
 - Gene level analyses
     - Tabulate codon frequency of each coding sequence;
     - Measure codon usage similarity to highly expressed genes with Codon Adaptation Index (CAI);
-    - Quantify the influnce of codon usage on mRNA stability with Mean Codon Stabilization Coefficients (CSCg);
+    - Quantify the influence of codon usage on mRNA stability with Mean Codon Stabilization Coefficients (CSCg);
     - Measure codon usage bias with the nonparametric index Effective number of codons (ENC);
     - Measure the fraction of pre-determined optimal codons (Fop) in each sequence;
     - Overall GC content (GC) or that of 3rd synonymous positions (GC3s) or 4-fold degenerate sites (GC4d);
     - Quantify whether codon usage matches tRNA availability using tRNA Adaptation Index (tAI);
+    - Measure the deviation from porportionality (Dp) of viral synonymous codon usage from host tRNA supply;
 - Utilities
     - Sliding window analysis of codon usage within a coding sequence;
     - Optimize codon usage based on optimal codons for heterologous expression;
