@@ -1,23 +1,31 @@
-#' Calculate ENC
+#' Calculate effective number of codons (ENC)
 #'
-#' \code{get_enc} computes ENC of each CDS
+#' \code{get_enc} computes the effective number of codons (ENC) for each coding
+#' sequence, which quantifies the degree of codon usage bias. Lower ENC values
+#' indicate stronger bias (fewer codons are used), while higher values indicate
+#' more uniform codon usage.
 #'
-#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
-#' @param codon_table codon_table a table of genetic code derived from \code{get_codon_table} or
-#'   \code{create_codon_table}.
-#' @param level "subfam" (default) or "amino_acid". For which level to determine ENC.
-#' @return vector of ENC values, sequence names are used as vector names
+#' @param cf A matrix of codon frequencies as calculated by \code{count_codons()}.
+#'   Rows represent sequences and columns represent codons.
+#' @param codon_table A codon table defining the genetic code, derived from
+#'   \code{get_codon_table()} or \code{create_codon_table()}.
+#' @param level Character string specifying the analysis level: "subfam" (default,
+#'   analyzes codon subfamilies) or "amino_acid" (analyzes at amino acid level).
+#' @return A named numeric vector of ENC values. Names correspond to sequence
+#'   identifiers from the input matrix. ENC values typically range from 20
+#'   (maximum bias) to 61 (uniform usage).
 #' @export
 #' @references
-#' - Wright F. 1990. The 'effective number of codons' used in a gene. Gene 87:23-29.
-#' - Sun X, Yang Q, Xia X. 2013. An improved implementation of effective number of codons (NC).
-#'   Mol Biol Evol 30:191-196.
+#' Wright F. 1990. The 'effective number of codons' used in a gene. Gene 87:23-29.
+#'
+#' Sun X, Yang Q, Xia X. 2013. An improved implementation of effective number of codons (NC). Mol Biol Evol 30:191-196.
 #' @examples
-#' # estimate ENC of yeast genes
+#' # Calculate ENC for yeast genes
 #' cf_all <- count_codons(yeast_cds)
 #' enc <- get_enc(cf_all)
 #' head(enc)
-#' hist(enc)
+#' hist(enc, main = "Distribution of ENC values")
+#'
 get_enc <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
     aa_code <- NULL # due to NSE notes in R CMD check
     if(!level %in% c('amino_acid', 'subfam')){
@@ -36,7 +44,7 @@ get_enc <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
     })
     n_cf <- sapply(codon_list, function(x){
         mx <- cf[, x, drop = FALSE]
-        return(rowSums(mx + 1))
+        return(rowSums(mx))
     })
 
     if(nrow(cf) == 1){
@@ -44,50 +52,51 @@ get_enc <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
         n_cf <- t(n_cf)
     }
     ss <- lengths(codon_list)
-
-    Nc <- N_single <- sum(ss == 1)
-    if(sum(ss == 2) > 0){
-        N_double <- sum(ss == 2) * rowSums(n_cf[, ss == 2, drop = F]) /
-            rowSums(n_cf[, ss == 2, drop = F] * f_cf[, ss == 2, drop = F])
-        Nc <- Nc + N_double
-    }
-    if(sum(ss == 3) > 0){
-        N_triple <- sum(ss == 3) * rowSums(n_cf[, ss == 3, drop = F]) /
-            rowSums(n_cf[, ss == 3, drop = F] * f_cf[, ss == 3, drop = F])
-        Nc <- Nc + N_triple
-    }
-    if(sum(ss == 4) > 0){
-        N_quad <- sum(ss == 4) * rowSums(n_cf[, ss == 4, drop = F]) /
-            rowSums(n_cf[, ss == 4, drop = F] * f_cf[, ss == 4, drop = F])
-        Nc <- Nc + N_quad
+    unique_deg <- unique(ss)
+    Nc <- sum(ss == 1)
+    for (deg in unique_deg[unique_deg > 1]) {
+      N_deg <- sum(ss == deg) * rowSums(n_cf[, ss == deg, drop = FALSE]) /
+        rowSums(n_cf[, ss == deg, drop = FALSE] * f_cf[, ss == deg, drop = FALSE])
+      N_deg[rowSums(n_cf[, ss == deg, drop = FALSE]) == 0] <- sum(ss == deg)* deg
+      Nc <- Nc + N_deg
     }
     return(Nc)
 }
 
 
-#' Calculate CAI
+#' Calculate Codon Adaptation Index (CAI)
 #'
-#' \code{get_cai} calculates Codon Adaptation Index (CAI) of each input CDS
+#' \code{get_cai} calculates the Codon Adaptation Index (CAI) for each input
+#' coding sequence. CAI measures how similar the codon usage of a gene is to
+#' that of highly expressed genes, serving as an indicator of translational
+#' efficiency. Higher CAI values suggest better adaptation to the translational
+#' machinery.
 #'
-#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
-#' @param rscu rscu table containing CAI weight for each codon. This table could be
-#'   generated with \code{est_rscu} or prepared manually.
-#' @param level "subfam" (default) or "amino_acid". For which level to determine CAI.
-#' @returns a named vector of CAI values
+#' @param cf A matrix of codon frequencies as calculated by \code{count_codons()}.
+#'   Rows represent sequences and columns represent codons.
+#' @param rscu An RSCU table containing CAI weights for each codon. This table
+#'   should be generated using \code{est_rscu()} based on highly expressed genes,
+#'   or prepared manually with appropriate weight values.
+#' @param level Character string specifying the analysis level: "subfam" (default,
+#'   analyzes codon subfamilies) or "amino_acid" (analyzes at amino acid level).
+#' @return A named numeric vector of CAI values ranging from 0 to 1. Names
+#'   correspond to sequence identifiers from the input matrix. Values closer
+#'   to 1 indicate higher similarity to highly expressed genes.
 #' @importFrom data.table ':='
 #' @importFrom data.table .N
 #' @references Sharp PM, Li WH. 1987. The codon Adaptation Index--a measure of directional
 #'   synonymous codon usage bias, and its potential applications. Nucleic Acids Res 15:1281-1295.
 #' @export
 #' @examples
-#' # estimate CAI of yeast genes based on RSCU of highly expressed genes
+#' # Calculate CAI for yeast genes based on RSCU of highly expressed genes
 #' heg <- head(yeast_exp[order(-yeast_exp$fpkm), ], n = 500)
 #' cf_all <- count_codons(yeast_cds)
 #' cf_heg <- cf_all[heg$gene_id, ]
 #' rscu_heg <- est_rscu(cf_heg)
 #' cai <- get_cai(cf_all, rscu_heg)
 #' head(cai)
-#' hist(cai)
+#' hist(cai, main = "Distribution of CAI values")
+#'
 #'
 get_cai <- function(cf, rscu, level = 'subfam'){
     ss <- . <- NULL
@@ -106,47 +115,78 @@ get_cai <- function(cf, rscu, level = 'subfam'){
 }
 
 
-#' Calculate TAI
+#' Calculate tRNA Adaptation Index (TAI)
 #'
-#' \code{get_tai} calculates tRNA Adaptation Index (TAI) of each CDS
+#' \code{get_tai} calculates the tRNA Adaptation Index (TAI) for each coding
+#' sequence, which measures how well codon usage matches tRNA availability in
+#' the cell. Higher TAI values indicate better adaptation to the tRNA pool,
+#' suggesting more efficient translation.
 #'
-#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
-#' @param trna_w tRNA weight for each codon, can be generated with \code{est_trna_weight()}.
-#' @returns a named vector of TAI values
+#' @param cf A matrix of codon frequencies as calculated by \code{count_codons()}.
+#'   Note: Start codons should be removed from sequences before analysis to
+#'   avoid bias from universal start codon usage.
+#' @param trna_w A table of tRNA weights for each codon, generated using
+#'   \code{est_trna_weight()}. These weights reflect relative tRNA availability.
+#' @param w_format Character string specifying the format of tRNA weights:
+#'   "cubar" (default, weights from cubar package) or "tAI" (weights from
+#'   the tAI package format).
+#' @return A named numeric vector of TAI values. Names correspond to sequence
+#'   identifiers from the input matrix. Values range from 0 to 1, with higher
+#'   values indicating better adaptation to tRNA availability. It should be noted
+#'   that the tAI package does not include codons that correspond to methionine in
+#'   its calculation. In contrast, cubar requires removing the start codon and takes
+#'   into account codons encoding methionine within the sequence. Correspondingly,
+#'   cubar excludes initiator tRNA (iMet in eukaryotes or fMet in prokaryotes), and
+#'   focuses on the anticodons that correspond to regular methionine.
 #' @references dos Reis M, Savva R, Wernisch L. 2004. Solving the riddle of codon usage
 #'   preferences: a test for translational selection. Nucleic Acids Res 32:5036-5044.
 #' @export
 #' @examples
 #' # calculate TAI of yeast genes based on genomic tRNA copy numbers
 #' w <- est_trna_weight(yeast_trna_gcn)
-#' cf_all <- count_codons(yeast_cds)
-#' tai <- get_tai(cf_all, w)
+#' # note: check_istop is suppressed to facilitate package development.
+#' #   We suggest enable this option for real sequence analyses.
+#' yeast_cds_qc <- check_cds(yeast_cds, check_istop = FALSE)
+#' cf <- count_codons(yeast_cds_qc)
+#' tai <- get_tai(cf, w)
 #' head(tai)
 #' hist(tai)
 #'
-get_tai <- function(cf, trna_w){
-    # codon frequency per CDS
-    cf <- cf[, trna_w$codon, drop = FALSE]
+get_tai <- function(cf, trna_w, w_format = "cubar"){
 
-    # tai
-    tai <- exp(cf %*% matrix(log(trna_w$w)) / rowSums(cf))
+    if(!w_format %in% c('cubar', 'tAI')){
+      stop('Possible values for `w_format` are "cubar" and "tAI"')
+    }
+    if(w_format == "cubar"){
+      # codon frequency per CDS
+      cf <- cf[, trna_w$codon, drop = FALSE]
+      # tai
+      tai <- exp(cf %*% matrix(log(trna_w$w)) / rowSums(cf))
+    }else if(w_format == "tAI"){
+      codon_table <- get_codon_table()
+      valid_codons <- setdiff(codon_table$codon, c('TAA', 'TAG', 'TGA', 'ATG'))
+      tai <- exp(cf[, valid_codons] %*% matrix(log(trna_w)) / rowSums(cf[, valid_codons]))
+    }
     return(tai[, 1])
 }
 
 
-#' GC contents
+#' Calculate GC content of coding sequences
 #'
-#' Calculate GC content of the whole sequences.
+#' \code{get_gc} calculates the overall GC content (percentage of guanine and
+#' cytosine nucleotides) for each coding sequence.
 #'
-#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
-#' @returns a named vector of GC contents.
+#' @param cf A matrix of codon frequencies as calculated by \code{count_codons()}.
+#'   Rows represent sequences and columns represent codons.
+#' @return A named numeric vector of GC content values (ranging from 0 to 1).
+#'   Names correspond to sequence identifiers from the input matrix.
 #' @export
 #' @examples
-#' # estimate GC content of yeast genes
+#' # Calculate GC content for yeast genes
 #' cf_all <- count_codons(yeast_cds)
 #' gc <- get_gc(cf_all)
 #' head(gc)
-#' hist(gc)
+#' hist(gc, main = "Distribution of GC content")
 #'
 get_gc <- function(cf){
     codon_gc <- sapply(strsplit(colnames(cf), ''), \(x) sum(x %in% c('C', 'G')))
@@ -161,9 +201,9 @@ get_gc <- function(cf){
 #'
 #' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
 #' @param codon_table a table of genetic code derived from \code{get_codon_table} or \code{create_codon_table}.
-#' @param level "subfam" (default) or "amino_acid". For which level to determine 
+#' @param level "subfam" (default) or "amino_acid". For which level to determine
 #'   GC content at synonymous 3rd codon positions.
-#' @returns a named vector of GC3s values.
+#' @returns a named vector of GC3s values. The names of the elements correspond to the sequence names.
 #' @importFrom data.table ':='
 #' @importFrom data.table .N
 #' @references Peden JF. 2000. Analysis of codon usage.
@@ -196,9 +236,9 @@ get_gc3s <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
 #' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
 #' @param codon_table a table of genetic code derived from \code{get_codon_table} or
 #'   \code{create_codon_table}.
-#' @param level "subfam" (default) or "amino_acid". For which level to determine 
+#' @param level "subfam" (default) or "amino_acid". For which level to determine
 #'   GC contents at 4-fold degenerate sites.
-#' @returns a named vector of GC4d values.
+#' @returns a named vector of GC4d values. The names of the elements correspond to the sequence names.
 #' @importFrom data.table ':='
 #' @importFrom data.table .N
 #' @export
@@ -226,35 +266,47 @@ get_gc4d <- function(cf, codon_table = get_codon_table(), level = 'subfam'){
 }
 
 
-#' Fraction of optimal codons (Fop)
+#' Calculate fraction of optimal codons (Fop)
 #'
-#' \code{get_fop} calculates the fraction of optimal codons (Fop) of each CDS.
+#' \code{get_fop} calculates the fraction of optimal codons (Fop) for each
+#' coding sequence, which represents the proportion of codons that are
+#' considered optimal for translation efficiency. Higher Fop values suggest
+#' stronger selection for optimal codon usage.
 #'
-#' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
-#' @param op a character vector of optimal codons. Can be determined automatically by running
-#'   \code{est_optimal_codons}.
-#' @param codon_table a table of genetic code derived from \code{get_codon_table} or
-#'   \code{create_codon_table}.
-#' @param ... other arguments passed to \code{est_optimal_codons}.
-#' @returns a named vector of fop values.
+#' @param cf A matrix of codon frequencies as calculated by \code{count_codons()}.
+#'   Rows represent sequences and columns represent codons.
+#' @param op A character vector specifying which codons are considered optimal.
+#'   If not provided, optimal codons will be determined automatically using
+#'   \code{est_optimal_codons()}.
+#' @param codon_table A codon table defining the genetic code, derived from
+#'   \code{get_codon_table()} or \code{create_codon_table()}.
+#' @param ... Additional arguments passed to \code{est_optimal_codons()} when
+#'   optimal codons are determined automatically.
+#' @return A named numeric vector of Fop values (ranging from 0 to 1). Names
+#'   correspond to sequence identifiers from the input matrix. Higher values
+#'   indicate greater usage of optimal codons.
 #' @references Ikemura T. 1981. Correlation between the abundance of Escherichia coli transfer RNAs
 #'   and the occurrence of the respective codons in its protein genes: a proposal for a synonymous
 #'   codon choice that is optimal for the E. coli translational system. J Mol Biol 151:389-409.
 #' @export
 #' @examples
-#' # estimate Fop of yeast genes
+#' # Calculate Fop for yeast genes (optimal codons determined automatically)
 #' cf_all <- count_codons(yeast_cds)
 #' fop <- get_fop(cf_all)
 #' head(fop)
-#' hist(fop)
+#' hist(fop, main = "Distribution of Fop values")
+#'
 #'
 get_fop <- function(cf, op = NULL, codon_table = get_codon_table(), ...){
-    coef <- qvalue <- codon <- optimal <- NULL
-    if(is.null(op)){
-        optimal_codons <- est_optimal_codons(cf, codon_table = codon_table, ...)
-        op <- optimal_codons[optimal == TRUE, codon]
-    }
-    rowSums(cf[, op]) / rowSums(cf)
+  coef <- qvalue <- codon <- optimal <- amino_acid <- N <- . <- NULL
+  excluded_codon <- codon_table[, .(codon = codon, .N), by = .(amino_acid)][(N == 1 | amino_acid == "*")]$codon
+  cf <- cf[, !colnames(cf) %in% excluded_codon]
+  codon_table <- codon_table[!codon %in% excluded_codon,]
+  if(is.null(op)){
+    optimal_codons <- est_optimal_codons(cf, codon_table = codon_table, ...)
+    op <- optimal_codons[optimal == TRUE, codon]
+  }
+  rowSums(cf[, op]) / rowSums(cf)
 }
 
 
@@ -264,7 +316,7 @@ get_fop <- function(cf, op = NULL, codon_table = get_codon_table(), ...){
 #'
 #' @param cf matrix of codon frequencies as calculated by \code{count_codons()}.
 #' @param csc table of Codon Stabilization Coefficients as calculated by \code{est_csc()}.
-#' @returns a named vector of cscg values.
+#' @returns a named vector of cscg values. The names of the elements correspond to the sequence names.
 #' @references Presnyak V, Alhusaini N, Chen YH, Martin S, Morris N, Kline N, Olson S, Weinberg D,
 #'   Baker KE, Graveley BR, et al. 2015. Codon optimality is a major determinant of mRNA stability.
 #'   Cell 160:1111-1124.
@@ -297,7 +349,7 @@ get_cscg <- function(cf, csc){
 #'   the codon subfamily level. Otherwise, the deviation is calculated at the amino acid level.
 #' @param missing_action Actions to take when no codon of a group were found in a CDS. Options are
 #'   "ignore" (default), or "zero" (set codon proportions to 0).
-#' @returns a named vector of dp values.
+#' @returns a named vector of dp values. The names of the elements correspond to the sequence names.
 #' @references Chen F, Wu P, Deng S, Zhang H, Hou Y, Hu Z, Zhang J, Chen X, Yang JR. 2020.
 #'   Dissimilation of synonymous codon usage bias in virus-host coevolution due to translational
 #'   selection. Nat Ecol Evol 4:589-600.
@@ -340,4 +392,33 @@ get_dp <- function(cf, host_weights, codon_table = get_codon_table(),
     # 1. no codon of a group were found in a CDS when missing_action = "ignore";
     # 2. exact match to the host tRNA pool. (very rare)
     dp <- exp(rowMeans(log(d), na.rm = TRUE))
+}
+
+#' Amino Acid Usage
+#'
+#' Calculate Amino Acid Usage Frequencies of each CDS.
+#'
+#' @param cf matrix of codon frequencies as calculated by `count_codons()`.
+#' @param codon_table a table of genetic code derived from \code{get_codon_table} or
+#'   \code{create_codon_table}.
+#' @returns a matrix of amino acid frequencies for each CDS.
+#' Each row corresponds to a sequence, and each column represents an amino acid.
+#' @export
+#' @examples
+#' # estimate amino acid frequencies of yeast CDSs
+#' cf_all <- count_codons(yeast_cds)
+#' aau_gene <- get_aau(cf_all)
+#' head(aau_gene)
+#'
+
+get_aau <- function(cf, codon_table = get_codon_table()){
+  aa_code <- id <- codon <- count <- count_codon <- aa_code <-  amino_acid <- . <- NULL # due to NSE notes in R CMD check
+  codon_table <- data.table::as.data.table(codon_table)
+  codon_table <- codon_table[amino_acid != '*']
+  aa_mat <- sapply(split(codon_table$codon, codon_table$amino_acid), \(x) rowSums(cf[, x, drop = FALSE]))
+  if(!is.matrix(aa_mat)){
+    aa_mat <- t(as.matrix(aa_mat))
+  }
+  aau_mat <- aa_mat/rowSums(aa_mat)
+  return(aau_mat)
 }

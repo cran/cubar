@@ -2,26 +2,46 @@
 % Please edit documentation in R/gene_index.R
 \name{get_tai}
 \alias{get_tai}
-\title{Calculate TAI}
+\title{Calculate tRNA Adaptation Index (TAI)}
 \usage{
-get_tai(cf, trna_w)
+get_tai(cf, trna_w, w_format = "cubar")
 }
 \arguments{
-\item{cf}{matrix of codon frequencies as calculated by \code{count_codons()}.}
+\item{cf}{A matrix of codon frequencies as calculated by \code{count_codons()}.
+Note: Start codons should be removed from sequences before analysis to
+avoid bias from universal start codon usage.}
 
-\item{trna_w}{tRNA weight for each codon, can be generated with \code{est_trna_weight()}.}
+\item{trna_w}{A table of tRNA weights for each codon, generated using
+\code{est_trna_weight()}. These weights reflect relative tRNA availability.}
+
+\item{w_format}{Character string specifying the format of tRNA weights:
+"cubar" (default, weights from cubar package) or "tAI" (weights from
+the tAI package format).}
 }
 \value{
-a named vector of TAI values
+A named numeric vector of TAI values. Names correspond to sequence
+  identifiers from the input matrix. Values range from 0 to 1, with higher
+  values indicating better adaptation to tRNA availability. It should be noted
+  that the tAI package does not include codons that correspond to methionine in
+  its calculation. In contrast, cubar requires removing the start codon and takes
+  into account codons encoding methionine within the sequence. Correspondingly,
+  cubar excludes initiator tRNA (iMet in eukaryotes or fMet in prokaryotes), and
+  focuses on the anticodons that correspond to regular methionine.
 }
 \description{
-\code{get_tai} calculates tRNA Adaptation Index (TAI) of each CDS
+\code{get_tai} calculates the tRNA Adaptation Index (TAI) for each coding
+sequence, which measures how well codon usage matches tRNA availability in
+the cell. Higher TAI values indicate better adaptation to the tRNA pool,
+suggesting more efficient translation.
 }
 \examples{
 # calculate TAI of yeast genes based on genomic tRNA copy numbers
 w <- est_trna_weight(yeast_trna_gcn)
-cf_all <- count_codons(yeast_cds)
-tai <- get_tai(cf_all, w)
+# note: check_istop is suppressed to facilitate package development.
+#   We suggest enable this option for real sequence analyses.
+yeast_cds_qc <- check_cds(yeast_cds, check_istop = FALSE)
+cf <- count_codons(yeast_cds_qc)
+tai <- get_tai(cf, w)
 head(tai)
 hist(tai)
 

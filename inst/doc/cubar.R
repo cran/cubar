@@ -37,7 +37,8 @@ yeast_cf[1:3, 1:3]
 ctab <- get_codon_table(gcid = '1')
 
 # plot possible codon and anticodon pairings
-plot_ca_pairing(ctab)
+pairing <- ca_pairs(ctab, plot = TRUE)
+plot_ca_pairs(ctab, pairing)
 
 ## -----------------------------------------------------------------------------
 # example of a custom mapping
@@ -87,8 +88,7 @@ plot_dist(cai, xlab = 'CAI')
 
 ## -----------------------------------------------------------------------------
 # get tRNA gene copy number from GtRNADB
-trna_gcn <- table(data.table::tstrsplit(sub(' .*', '', names(yeast_trna)), '-')[[3]])
-trna_gcn <- trna_gcn[names(trna_gcn) != 'NNN'] # copy of each anticodon
+trna_gcn <- extract_trna_gcn(yeast_trna)
 
 # calculate tRNA weight for each codon
 trna_w <- est_trna_weight(trna_level = trna_gcn, codon_table = ctab)

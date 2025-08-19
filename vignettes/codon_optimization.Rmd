@@ -1,0 +1,127 @@
+---
+title: "Codon optimization"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Codon optimization}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+### Introduction
+Codon optimization modifies a gene’s coding sequence to enhance protein production without changing the encoded amino acid sequence. The `codon_optimize` function in the `cubar` package provides three strategies for optimizing coding sequences based on the codon usage of the target organism. The first two strategies replace rare codons with more frequently used ones, while the third strategy employs the third-party deep learning model `CodonTransformer` (Fallahpour et al., 2025) to optimize codon usage.
+
+
+### Evironment setup
+Additionally, `cubar` can integrate the state-of-the-art deep learning model `SpliceAI` (Jaganathan et al., 2019) to prevent the unintended introduction of cryptic splice sites in optimized sequences. As both `SpliceAI` and `CodonTransformer` are Python-based, users must manually install these packages. Here we demonstrates how to install them using `conda` (or `mamba`) in a new environment for use in `cubar`.
+
+```{bash, eval=FALSE}
+# create a new environment named "cubar_env" with both python and r installed
+conda create -n cubar_env python=3.12 r-base blas=*=netlib r-reticulate
+# activate the environment we just created
+conda activate cubar_env
+# install CodonTransformer and SpliceAI
+pip install CodonTransformer tensorflow spliceai
+```
+
+### Optimization strategies
+##### "naive" method
+The default "naive" method simply replaces each codon to the most preferred one in the same family or subfamily.
+```{r}
+library(cubar)
+
+seq <- 'ATGCTACGA'
+cf_all <- count_codons(yeast_cds)
+optimal_codons <- est_optimal_codons(cf_all)
+seq_opt <- codon_optimize(seq, optimal_codons)
+print(seq_opt)
+```
+
+##### "IDT" method
+The "IDT" option implements the method used by the codon optimization tool of Integrated DNA Technologies. Briefly, this method randomly selects synonymous codons from the same family or subfamily based on their relative frequency, but excluding rare codons used below 10% in the target organism.
+```{r}
+seq_opt <- codon_optimize(seq, cf = cf_all, method = "IDT")
+print(seq_opt)
+```
+
+##### "CodonTransformer" method
+The "CodonTransformer" method optimizes codon usage with the third-party software `CodonTransformer` directly using a wrapper in R. `CodonTransformer` is a deep learning model that can generate coding sequences that show similar codon usage and distribution to host genes with reduced negative cis elements in a wide range of organisms across the tree of life. Please refer to the original study for more details.
+
+```{r, eval=FALSE}
+seq_opt <- codon_optimize(seq, method = "CodonTransformer", organism = "Saccharomyces cerevisiae")
+print(seq_opt)
+#> 9-letter DNAString object
+#> seq: ATGTTAAGATGA
+```
+
+`cubar` can generate several optimized sequences at the same time using the argument `num_sequences` with the method "IDT" and "CodonTransformer". When `num_sequences` is greater than 1, identical duplicate sequences will be retained as a single copy, potentially resulting in a final sequence count less than the specified value.
+
+```{r, eval=FALSE}
+seqs_opt <- codon_optimize(seq, cf = cf_all, method = "IDT", num_sequences = 10)
+print(seqs_opt)
+#> DNAStringSet object of length 6:
+#>     width seq
+#> [1]     9 ATGCTCCGT
+#> [2]     9 ATGCTGCGT
+#> [3]     9 ATGCTTCGT
+#> [4]     9 ATGCTACGT
+#> [5]     9 ATGCTCCGA
+#> [6]     9 ATGCTTCGA
+seqs_opt <- codon_optimize(seq, method = "CodonTransformer", organism = "Saccharomyces cerevisiae",
+num_sequences = 10, deterministic =FALSE, temperature = 0.4)
+print(seqs_opt)
+#> DNAStringSet object of length 4:
+#>     width seq
+#> [1]    12 ATGTTGAGATAA
+#> [2]    12 ATGTTAAGATAA
+#> [3]    12 ATGTTGAGATGA
+#> [4]    12 ATGTTGAGATAG
+```
+
+### Splice site detection
+
+In addition, `cubar` integrated the deep learning tool `SpliceAI` to identify potential splice sites with the argument `spliceai`. When the probabilities of non-splice site for each base are greater than 0.5, it is considered that there are no potential splice junction sites, and the `Possible_splice_junction` in the output is marked as FALSE, otherwise it is marked as TRUE.
+```{r, eval=FALSE}
+seqs_opt <- codon_optimize(seq, cf = cf_all, method = "IDT", num_sequences = 10, spliceai = TRUE)
+print(seqs_opt)
+#>     Candidate_optimized_sequence Possible_splice_junction
+#>                           <char>                   <lgcl>
+#>  1:                    ATGCTACGC                    FALSE
+#>  2:                    ATGCTGCGA                    FALSE
+#>  3:                    ATGCTGCGT                    FALSE
+#>  4:                    ATGCTTCGC                    FALSE
+#>  5:                    ATGCTACGT                    FALSE
+#>  6:                    ATGCTTCGG                    FALSE
+#>  7:                    ATGCTCCGT                    FALSE
+#>  8:                    ATGCTTCGT                    FALSE
+#>  9:                    ATGCTCCGA                    FALSE
+#> 10:                    ATGCTTCGA                    FALSE
+seq_opt <- codon_optimize(seq, method = "CodonTransformer", organism = "Saccharomyces cerevisiae", spliceai = TRUE)
+print(seq_opt)
+#>    Candidate_optimized_sequence Possible_splice_junction
+#>                          <char>                   <lgcl>
+#> 1:                 ATGTTAAGATGA                    FALSE
+```
+
+### Recommendations
+Codon usage within a coding sequence influences multiple aspects of mRNA biology, including RNA secondary structure, translation elongation, co-translational folding, and mRNA stability (Liu et al., 2021). Achieving an optimal coding sequence requires carefully balancing all of these factors, making codon optimization a more complex task than it may initially appear. The `naive` approach implemented in cubar—which simply replaces each non-optimal codon with the most preferred one—fails to account for local sequence context and may lead to unintended consequences. For instance, rare codons are often strategically positioned to facilitate proper folding of protein domains; indiscriminately replacing them with preferred codons can disrupt this process and promote aggregation (Moss et al., 2024).
+
+Given these complexities, we recommend using more sophisticated and context-aware methods for codon optimization. Established strategies such as that implemented in the IDT’s codon optimization tool have demonstrated long-term effectiveness and are widely adopted within the research community. Meanwhile, newer approaches based on deep generative models—such as CodonTransformer (Fallahpour et al., 2025) and CodonBert (Li et al., 2024)—leverage large-scale natural sequence data and advanced architectures like recurrent neural networks and attention mechanisms to capture context-dependent codon usage patterns (Novakovsky et al., 2023). These deep learning–based models offer a powerful, flexible framework for codon optimization and are likely to play a central role in future sequence design workflows.
+
+##### References
+
+- Fallahpour A, Gureghian V, Filion GJ, Lindner AB, Pandi A. CodonTransformer: a multispecies codon optimizer using context-aware neural networks. Nat Commun. 2025 Apr 3;16(1):3205. doi: 10.1038/s41467-025-58588-7. PMID: 40180930; PMCID: PMC11968976.
+- Jaganathan K, Kyriazopoulou Panagiotopoulou S, McRae JF, Darbandi SF, Knowles D, Li YI, Kosmicki JA, Arbelaez J, Cui W, Schwartz GB, Chow ED, Kanterakis E, Gao H, Kia A, Batzoglou S, Sanders SJ, Farh KK. Predicting Splicing from Primary Sequence with Deep Learning. Cell. 2019 Jan 24;176(3):535-548.e24. doi: 10.1016/j.cell.2018.12.015. Epub 2019 Jan 17. PMID: 30661751.
+- Method used by the IDT codon optimization tool: https://sg.idtdna.com/pages/education/decoded/article/idt-codon-optimization-tool-makes-synthetic-gene-design-easy
+- Liu Y, Yang Q, Zhao F. Synonymous but Not Silent: The Codon Usage Code for Gene Expression and Protein Folding. Annu Rev Biochem. 2021 Jun 20;90:375-401. doi: 10.1146/annurev-biochem-071320-112701. Epub 2021 Jan 13. PMID: 33441035; PMCID: PMC8284178.
+- Moss MJ, Chamness LM, Clark PL. The Effects of Codon Usage on Protein Structure and Folding. Annu Rev Biophys. 2024 Jul;53(1):87-108. doi: 10.1146/annurev-biophys-030722-020555. Epub 2024 Jun 28. PMID: 38134335; PMCID: PMC11227313.
+- Li S, Moayedpour S, Li R, Bailey M, Riahi S, Kogler-Anele L, Miladi M, Miner J, Pertuy F, Zheng D, Wang J, Balsubramani A, Tran K, Zacharia M, Wu M, Gu X, Clinton R, Asquith C, Skaleski J, Boeglin L, Chivukula S, Dias A, Strugnell T, Montoya FU, Agarwal V, Bar-Joseph Z, Jager S. CodonBERT large language model for mRNA vaccines. Genome Res. 2024 Aug 20;34(7):1027-1035. doi: 10.1101/gr.278870.123. PMID: 38951026; PMCID: PMC11368176.
+- Novakovsky G, Dexter N, Libbrecht MW, Wasserman WW, Mostafavi S. Obtaining genetics insights from deep learning via explainable artificial intelligence. Nat Rev Genet. 2023 Feb;24(2):125-137. doi: 10.1038/s41576-022-00532-2. Epub 2022 Oct 3. PMID: 36192604.

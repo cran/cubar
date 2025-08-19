@@ -48,8 +48,9 @@ overflow: visible;
 }
 </style>
 <style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -60,7 +61,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -428,9 +429,9 @@ are prevalent among MT CDSs.</p>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># calculate ENC</span></span>
 <span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">get_enc</span>(mt_cf, <span class="at">codon_table =</span> ctab)</span>
 <span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;  MT-ATP6   MT-ND3   MT-ND1  MT-ATP8   MT-CYB  MT-ND4L   MT-ND4   MT-ND5 </span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 46.44871 44.93068 42.42264 50.54562 42.97931 47.29975 42.65228 43.53521 </span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 46.53816 44.10626 42.45881 48.39553 43.06242 45.65955 42.69293 43.50872 </span></span>
 <span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   MT-ND2   MT-ND6   MT-CO1   MT-CO2   MT-CO3 </span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 45.18387 45.56454 44.83277 49.19525 47.07683</span></span></code></pre></div>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 44.94793 45.50197 44.84836 49.21580 47.18339</span></span></code></pre></div>
 <p>It is important to note that the <code>check_cds</code> function and
 stop codon trimming are optional steps, and you can implement your own
 quality control procedures. However, it is crucial to ensure that your
